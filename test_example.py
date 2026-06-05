@@ -59,7 +59,9 @@ def test_sort_pbt(lst):
     # テストの実行部とアサーション部のうち，後者の問題でしかない
     # ただEBTとは違って後者に実例を与えることができないので，うまく一般化する
 
-# 従来のExample-Based Test
+"""
+fizzbuzzに対するEBT
+"""
 def test_fizzbuzz_ebt():
     assert fizzbuzz(3) == 'fizz'
     assert fizzbuzz(9) == 'fizz'
@@ -68,8 +70,9 @@ def test_fizzbuzz_ebt():
     assert fizzbuzz(15) == 'fizzbuzz'
     assert fizzbuzz(30) == 'fizzbuzz'
 
-# fizzbuzzに対するProperty-Based Test
-# hypothesisが生成したランダムなnをテストする
+"""
+fizzbuzzに対するPBT
+"""
 @given(st.integers())
 def test_fizzbuzz_pbt(n):
     if n % 15 == 0:
@@ -83,3 +86,21 @@ def test_fizzbuzz_pbt(n):
 
     # これは本当にプロパティなんだろうか⋯
     # fizzbuzzの検証のためにfizzbuzzのロジックを書いてしまっている⋯
+
+"""
+filterを使って上記PBTをましにする
+"""
+@given(st.integers().filter(lambda n: n % 15 == 0))
+def test_fizzbuzz_pbt2(n):
+    assert fizzbuzz(n) == 'fizzbuzz'
+
+@given(st.integers().filter(lambda n: n % 3 == 0 and n % 15 != 0))
+def test_fizzbuzz_pbt3(n):
+    assert fizzbuzz(n) == 'fizz'
+
+@given(st.integers().filter(lambda n: n % 5 == 0 and n % 15 != 0))
+def test_fizzbuzz_pbt4(n):
+    assert fizzbuzz(n) == 'buzz'
+
+    # filterで生成する値に制約を与えている
+    # 少しはましなプロパティになった気がするけどどうだろう
