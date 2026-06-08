@@ -1,31 +1,53 @@
-from hypothesis import given, strategies as st
+from hypothesis import given, strategies as st, settings
 from example import *
 
 """
 まずはhypothesisのgeneratorをそのまま確認してみる
 $ uv run pytest -s # -sでstdoutを確認する
-$ uv run pytest -s test_example.py::test_trial1 # 特定テストだけ実行
+$ uv run pytest -s test_example.py::test_generator1 # 特定テストだけ実行
 """
 @given(st.integers())
-def test_trial1(n):
+def test_generator1(n):
     print(n)
     # デフォルトで100回generatorを動かすらしい
     # https://hypothesis.readthedocs.io/en/latest/tutorial/introduction.html#:~:text=generate%20100%20random%20inputs%2C
 
 """
 複雑なgeneratorをためす
-$ uv run pytest -s test_example.py::test_trial2
+$ uv run pytest -s test_example.py::test_generator2
 """
 @given(st.lists(st.integers() | st.floats()))
-def test_trial2(lst):
+def test_generator2(lst):
     print(lst)
 
 """
 複数の引数
 """
 @given(st.integers(), st.floats())
-def test_trial3(n, f):
+def test_generator3(n, f):
     print(n, f)
+
+"""
+generatorの内容の偏りが気になってきた
+完全なランダムではなく何か特殊な推論をやってそう
+"""
+@given(st.lists(st.integers()))
+def test_generator4(lst):
+    if len(lst) > 99999123:
+        assert True
+    print(lst)
+    # テスト側にマジックナンバーを入れても拾われない
+    # プロダクト側を変えるべきかも
+
+"""
+プロダクト側に定数99999123をつっこんでみた
+"""
+@given(st.lists(st.integers()))
+def test_generator5(lst):
+    print(lst)
+    # 99999123が拾われるようになった
+    # concolic実行のようなことをやってる
+
 
 """
 ソートに対する従来のEBT
@@ -104,3 +126,34 @@ def test_fizzbuzz_pbt4(n):
 
     # filterで生成する値に制約を与えている
     # 少しはましなプロパティになった気がするけどどうだろう
+
+"""
+generatorの戦略をいまいちど眺めてみる
+テストfail時に何が起きるのか？
+"""
+@given(st.lists(st.integers()))
+@settings(max_examples=5, database=None) # 回数を制限しつつリプレイは無効化
+def test_generator7(lst):
+    i = 0
+    print(lst)
+    for n in lst:
+        i = i + 1
+        if i > 3 and n >= 990: # なぞの境界条件
+            print('!!!')
+            assert False
+    # これはおもろい．まず指定回数を超えてPBTやっている
+    # そのうえでテストfailが起きる境界条件を探しているっぽい
+    # 加えて無意味な値を0に固定しようとする力が働いている
+    # （おそらく乱数よりも0の方が無意味になるから．無駄な文脈を含まなくて良いから）
+
+@given(st.lists(st.integers()))
+@settings(max_examples=10) # 回数を制限
+def test_generator8(lst):
+    print(lst)
+    assert is_magic_condition(lst)
+    # 上のtest_generator7に似たテスト．ただしプロダクト側でテストfailの原因を作っている
+    # このfailを拾えるかは運次第（配列3つ目に特定の定数があるかどうか）
+    # つまりそこまで厳密な解析はやっていない
+
+    # Shrinkingと呼ぶらしい．エンジンはConjecture Engine
+    # https://hypothesis.works/articles/how-hypothesis-works/
