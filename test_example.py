@@ -146,17 +146,18 @@ def test_generator7(lst):
     # 加えて無意味な値を0に固定しようとする力が働いている
     # （おそらく乱数よりも0の方が無意味になるから．無駄な文脈を含まなくて良いから）
 
+    # Shrinkingと呼ぶらしい．エンジンはConjecture Engine
+    # https://hypothesis.works/articles/how-hypothesis-works/
+
 @given(st.lists(st.integers()))
-@settings(max_examples=10) # 回数を制限
+@settings(max_examples=500, database=None) # 回数を制限
 def test_generator8(lst):
-    print(lst)
+    print(lst, is_magic_condition(lst))
     assert is_magic_condition(lst)
     # 上のtest_generator7に似たテスト．ただしプロダクト側でテストfailの原因を作っている
     # このfailを拾えるかは運次第（配列3つ目に特定の定数があるかどうか）
     # つまりそこまで厳密な解析はやっていない
-
-    # Shrinkingと呼ぶらしい．エンジンはConjecture Engine
-    # https://hypothesis.works/articles/how-hypothesis-works/
+    # 500回くらい試すとfailしやすいか？
 
 """
 sematic-versioningに対するPBTを試してみる
